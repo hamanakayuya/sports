@@ -1,2 +1,2 @@
-# sports/configs/__init__.py
-from .Futsal import FutsalPitchConfiguration
+from .Futsal import FutsalPitchConfiguration  # ★ 追加
+from .soccer import SoccerPitchConfiguration  # 既存
