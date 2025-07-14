@@ -11,6 +11,10 @@ class FutsalPitchConfiguration:
     penalty_arc_radius: int = 600
     goal_width: int = 300
 
+    # ✅ この2つを追加！
+    scale: float = 0.25
+    offset: Tuple[int, int] = (50, 50)
+
     @property
     def vertices(self) -> List[Tuple[float, float]]:
         return [
@@ -23,13 +27,17 @@ class FutsalPitchConfiguration:
         (4, 5),
     ])
 
-    def draw_arcs(self, image, scale: float, offset: Tuple[int, int]):
-        center = (int(self.length / 2 * scale + offset[0]), int(self.width / 2 * scale + offset[1]))
-        radius = int(self.centre_circle_radius * scale)
+    def draw_arcs(self, image):
+        center = (int(self.length / 2 * self.scale + self.offset[0]),
+                  int(self.width / 2 * self.scale + self.offset[1]))
+        radius = int(self.centre_circle_radius * self.scale)
         cv2.circle(image, center, radius, (255, 255, 255), 2)
 
-        left_spot = (int(self.penalty_spot_distance * scale + offset[0]), int(self.width / 2 * scale + offset[1]))
-        right_spot = (int((self.length - self.penalty_spot_distance) * scale + offset[0]), int(self.width / 2 * scale + offset[1]))
+        left_spot = (int(self.penalty_spot_distance * self.scale + self.offset[0]),
+                     int(self.width / 2 * self.scale + self.offset[1]))
+        right_spot = (int((self.length - self.penalty_spot_distance) * self.scale + self.offset[0]),
+                      int(self.width / 2 * self.scale + self.offset[1]))
+
         cv2.circle(image, left_spot, 4, (255, 255, 255), -1)
         cv2.circle(image, right_spot, 4, (255, 255, 255), -1)
 
@@ -38,11 +46,12 @@ class FutsalPitchConfiguration:
 
         goal_half = self.goal_width / 2
         cv2.line(image,
-                 (int(0 * scale + offset[0]), int((self.width / 2 - goal_half) * scale + offset[1])),
-                 (int(0 * scale + offset[0]), int((self.width / 2 + goal_half) * scale + offset[1])),
+                 (int(0 * self.scale + self.offset[0]), int((self.width / 2 - goal_half) * self.scale + self.offset[1])),
+                 (int(0 * self.scale + self.offset[0]), int((self.width / 2 + goal_half) * self.scale + self.offset[1])),
                  (255, 255, 255), 2)
         cv2.line(image,
-                 (int(self.length * scale + offset[0]), int((self.width / 2 - goal_half) * scale + offset[1])),
-                 (int(self.length * scale + offset[0]), int((self.width / 2 + goal_half) * scale + offset[1])),
+                 (int(self.length * self.scale + self.offset[0]), int((self.width / 2 - goal_half) * self.scale + self.offset[1])),
+                 (int(self.length * self.scale + self.offset[0]), int((self.width / 2 + goal_half) * self.scale + self.offset[1])),
                  (255, 255, 255), 2)
+
         return image
