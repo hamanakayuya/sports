@@ -1,76 +1,62 @@
-from dataclasses import dataclass, field
-from typing import List, Tuple
+from matplotlib import pyplot as plt
+import cv2
+import numpy as np
 
-@dataclass
-class FutsalPitchConfiguration:
-    width: int = 2000  # cm = 20m
-    length: int = 4000  # cm = 40m
-    goal_width: int = 300  # cm = 3m
-    penalty_area_radius: int = 600  # 6m
-    centre_circle_radius: int = 300  # 3m
-    penalty_spot_distance: int = 600  # 6m
+# フットサルコート用の描画パラメータ
+length = 4000  # cm
+width = 2000   # cm
+centre_circle_radius = 300  # cm
+penalty_spot_distance = 600  # cm
+penalty_area_radius = 600  # cm
+goal_width = 300  # cm
 
-    @property
-    def vertices(self) -> List[Tuple[int, int]]:
-        return [
-            (0, 0),  # 0: 左下角
-            (0, self.width),  # 1: 左上角
-            (self.length, self.width),  # 2: 右上角
-            (self.length, 0),  # 3: 右下角
-            (self.length // 2, 0),  # 4: センター下
-            (self.length // 2, self.width),  # 5: センター上
-            (self.length // 2, self.width // 2),  # 6: センター中央
-        ]
+# 空の画像を作成（背景：木目フロア風）
+image = np.zeros((int(width * 0.25 + 100), int(length * 0.25 + 100), 3), dtype=np.uint8)
+image[:] = (58, 138, 193)[::-1]  # オレンジブラウン系
 
-    edges: List[Tuple[int, int]] = field(default_factory=lambda: [
-        (0, 1), (1, 2), (2, 3), (3, 0),  # 外枠
-        (4, 5),  # センターライン
-    ])
+# 拡大倍率（1ピクセル=4cm）
+scale = 0.25
 
-    labels: List[str] = field(default_factory=lambda: [
-        "left_bottom", "left_top", "right_top", "right_bottom",
-        "center_bottom", "center_top", "center_point"
-    ])
+# 線を描画するための関数
+def draw_line(p1, p2):
+    pt1 = (int(p1[0]*scale+50), int(p1[1]*scale+50))
+    pt2 = (int(p2[0]*scale+50), int(p2[1]*scale+50))
+    cv2.line(image, pt1, pt2, (255,255,255), 2)
 
-    colors: List[str] = field(default_factory=lambda: [
-        "#FFFFFF", "#FFFFFF", "#FFFFFF", "#FFFFFF",
-        "#FFFFFF", "#FFFFFF", "#FFFFFF"
-    ])
+# 四角形（外周）
+draw_line((0, 0), (0, width))
+draw_line((0, width), (length, width))
+draw_line((length, width), (length, 0))
+draw_line((length, 0), (0, 0))
 
-    def draw_arcs(self, image):
-        import cv2
+# センターライン
+draw_line((length/2, 0), (length/2, width))
 
-        # センターサークル
-        center = (int(self.length / 2), int(self.width / 2))
-        cv2.circle(image, center, self.centre_circle_radius, (255, 255, 255), 2)
+# ゴール（縦線）
+draw_line((0, width/2 - goal_width/2), (0, width/2 + goal_width/2))
+draw_line((length, width/2 - goal_width/2), (length, width/2 + goal_width/2))
 
-        # 左ペナルティアーク（外向き）
-        left_arc_center = (self.penalty_spot_distance, self.width // 2)
-        cv2.ellipse(image, left_arc_center,
-                    (self.penalty_area_radius, self.penalty_area_radius),
-                    0, 270, 90, (255, 255, 255), 2)
+# センターサークル
+center = (int(length/2*scale+50), int(width/2*scale+50))
+cv2.circle(image, center, int(centre_circle_radius*scale), (255,255,255), 2)
 
-        # 右ペナルティアーク（外向き）
-        right_arc_center = (self.length - self.penalty_spot_distance, self.width // 2)
-        cv2.ellipse(image, right_arc_center,
-                    (self.penalty_area_radius, self.penalty_area_radius),
-                    0, 90, 270, (255, 255, 255), 2)
+# ペナルティマーク
+cv2.circle(image, (int(penalty_spot_distance*scale+50), int(width/2*scale+50)), 4, (255,255,255), -1)
+cv2.circle(image, (int((length - penalty_spot_distance)*scale+50), int(width/2*scale+50)), 4, (255,255,255), -1)
 
-        # ゴール（簡略表現：外枠の中央部に直線を描く）
-        goal_line_length = self.goal_width
-        # 左ゴール
-        cv2.line(image,
-                 (0, self.width // 2 - goal_line_length // 2),
-                 (0, self.width // 2 + goal_line_length // 2),
-                 (255, 255, 255), 2)
-        # 右ゴール
-        cv2.line(image,
-                 (self.length, self.width // 2 - goal_line_length // 2),
-                 (self.length, self.width // 2 + goal_line_length // 2),
-                 (255, 255, 255), 2)
+# ペナルティアーク
+cv2.ellipse(image,
+            (int(penalty_spot_distance*scale+50), int(width/2*scale+50)),
+            (int(penalty_area_radius*scale), int(penalty_area_radius*scale)),
+            0, 270, 90, (255,255,255), 2)
+cv2.ellipse(image,
+            (int((length - penalty_spot_distance)*scale+50), int(width/2*scale+50)),
+            (int(penalty_area_radius*scale), int(penalty_area_radius*scale)),
+            0, 90, 270, (255,255,255), 2)
 
-        # ペナルティマーク
-        cv2.circle(image, (self.penalty_spot_distance, self.width // 2), 5, (255, 255, 255), -1)
-        cv2.circle(image, (self.length - self.penalty_spot_distance, self.width // 2), 5, (255, 255, 255), -1)
-
-        return image
+# 表示
+plt.figure(figsize=(10, 5))
+plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+plt.axis('off')
+plt.title("Futsal Court (Scaled View)")
+plt.show()
